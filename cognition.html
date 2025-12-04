@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Cognition Experiment</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+
+        #container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 600px;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hidden { display: none !important; }
+
+        h1 { margin-bottom: 20px; font-size: 24px; }
+        p { font-size: 18px; line-height: 1.6; color: #555; }
+
+        .stimulus {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            font-family: monospace; /* Ensures numbers align well */
+        }
+
+        .fixation {
+            font-size: 60px;
+            color: #333;
+        }
+
+        input[type="number"] {
+            font-size: 24px;
+            padding: 10px;
+            width: 150px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        /* Remove arrows from number input */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #0056b3; }
+
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <div id="screen-welcome">
+            <h1>Arithmetic Experiment</h1>
+            <p>You will be presented with a series of addition problems.</p>
+            <p>Some will be in <b>digits</b> (e.g., 42 + 31) and some in <b>words</b> (e.g., forty-two + thirty-one).</p>
+            <p>Please type the answer and press <b>ENTER</b> as quickly and accurately as possible.</p>
+            <br>
+            <button onclick="startExperiment()">Start Experiment</button>
+        </div>
+
+        <div id="screen-fixation" class="hidden">
+            <div class="fixation">+</div>
+        </div>
+
+        <div id="screen-trial" class="hidden">
+            <div id="stimulus-display" class="stimulus"></div>
+            <input type="number" id="answer-input" autocomplete="off">
+        </div>
+
+        <div id="screen-end" class="hidden">
+            <h1>Experiment Complete</h1>
+            <p>Thank you for your participation.</p>
+            <p>Your data file should download automatically.</p>
+            <p>Please upload the <b>.csv</b> file to the Google Form provided.</p>
+            <br>
+            <button onclick="downloadCSV()">Download Again (if failed)</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. BALANCED STIMULI DATABASE ---
+        // Mean sum for all groups is approx ~77. 
+        // No ties. Carry/No-Carry logic enforced.
+        
+        const rawStimuli = [
+            // --- CONDITION 1: DIGIT / NO-CARRY (10 items) ---
+            { n1: 23, n2: 54, format: 'digit', carry: 'no', condition: 1 }, // Sum 77
+            { n1: 41, n2: 36, format: 'digit', carry: 'no', condition: 1 }, // Sum 77
+            { n1: 62, n2: 15, format: 'digit', carry: 'no', condition: 1 }, // Sum 77
+            { n1: 34, n2: 43, format: 'digit', carry: 'no', condition: 1 }, // Sum 77
+            { n1: 51, n2: 27, format: 'digit', carry: 'no', condition: 1 }, // Sum 78
+            { n1: 16, n2: 62, format: 'digit', carry: 'no', condition: 1 }, // Sum 78
+            { n1: 72, n2: 14, format: 'digit', carry: 'no', condition: 1 }, // Sum 86
+            { n1: 25, n2: 44, format: 'digit', carry: 'no', condition: 1 }, // Sum 69
+            { n1: 37, n2: 21, format: 'digit', carry: 'no', condition: 1 }, // Sum 58
+            { n1: 53, n2: 35, format: 'digit', carry: 'no', condition: 1 }, // Sum 88
+
+            // --- CONDITION 2: DIGIT / CARRY (10 items) ---
+            { n1: 48, n2: 29, format: 'digit', carry: 'yes', condition: 2 }, // Sum 77
+            { n1: 38, n2: 39, format: 'digit', carry: 'yes', condition: 2 }, // Sum 77
+            { n1: 59, n2: 18, format: 'digit', carry: 'yes', condition: 2 }, // Sum 77
+            { n1: 27, n2: 55, format: 'digit', carry: 'yes', condition: 2 }, // Sum 82
+            { n1: 19, n2: 58, format: 'digit', carry: 'yes', condition: 2 }, // Sum 77
+            { n1: 36, n2: 47, format: 'digit', carry: 'yes', condition: 2 }, // Sum 83
+            { n1: 45, n2: 37, format: 'digit', carry: 'yes', condition: 2 }, // Sum 82
+            { n1: 24, n2: 48, format: 'digit', carry: 'yes', condition: 2 }, // Sum 72
+            { n1: 17, n2: 34, format: 'digit', carry: 'yes', condition: 2 }, // Sum 51
+            { n1: 68, n2: 16, format: 'digit', carry: 'yes', condition: 2 }, // Sum 84
+
+            // --- CONDITION 3: WORD / NO-CARRY (10 items) ---
+            { n1: 32, n2: 45, format: 'word', carry: 'no', condition: 3 }, // Sum 77
+            { n1: 54, n2: 23, format: 'word', carry: 'no', condition: 3 }, // Sum 77
+            { n1: 13, n2: 64, format: 'word', carry: 'no', condition: 3 }, // Sum 77
+            { n1: 42, n2: 35, format: 'word', carry: 'no', condition: 3 }, // Sum 77
+            { n1: 21, n2: 57, format: 'word', carry: 'no', condition: 3 }, // Sum 78
+            { n1: 63, n2: 15, format: 'word', carry: 'no', condition: 3 }, // Sum 78
+            { n1: 31, n2: 55, format: 'word', carry: 'no', condition: 3 }, // Sum 86
+            { n1: 14, n2: 52, format: 'word', carry: 'no', condition: 3 }, // Sum 66
+            { n1: 26, n2: 32, format: 'word', carry: 'no', condition: 3 }, // Sum 58
+            { n1: 71, n2: 17, format: 'word', carry: 'no', condition: 3 }, // Sum 88
+
+            // --- CONDITION 4: WORD / CARRY (10 items) ---
+            { n1: 29, n2: 48, format: 'word', carry: 'yes', condition: 4 }, // Sum 77
+            { n1: 18, n2: 59, format: 'word', carry: 'yes', condition: 4 }, // Sum 77
+            { n1: 39, n2: 38, format: 'word', carry: 'yes', condition: 4 }, // Sum 77
+            { n1: 47, n2: 35, format: 'word', carry: 'yes', condition: 4 }, // Sum 82
+            { n1: 56, n2: 19, format: 'word', carry: 'yes', condition: 4 }, // Sum 75
+            { n1: 49, n2: 34, format: 'word', carry: 'yes', condition: 4 }, // Sum 83
+            { n1: 37, n2: 45, format: 'word', carry: 'yes', condition: 4 }, // Sum 82
+            { n1: 15, n2: 57, format: 'word', carry: 'yes', condition: 4 }, // Sum 72
+            { n1: 28, n2: 23, format: 'word', carry: 'yes', condition: 4 }, // Sum 51
+            { n1: 16, n2: 68, format: 'word', carry: 'yes', condition: 4 }, // Sum 84
+        ];
+
+        // Helper: Number to Word converter
+        const numToWords = {
+            13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen",
+            21: "twenty-one", 23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six", 27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine",
+            31: "thirty-one", 32: "thirty-two", 34: "thirty-four", 35: "thirty-five", 36: "thirty-six", 37: "thirty-seven", 38: "thirty-eight", 39: "thirty-nine",
+            41: "forty-one", 42: "forty-two", 43: "forty-three", 44: "forty-four", 45: "forty-five", 47: "forty-seven", 48: "forty-eight", 49: "forty-nine",
+            51: "fifty-one", 52: "fifty-two", 53: "fifty-three", 54: "fifty-four", 55: "fifty-five", 56: "fifty-six", 57: "fifty-seven", 58: "fifty-eight", 59: "fifty-nine",
+            62: "sixty-two", 63: "sixty-three", 64: "sixty-four", 68: "sixty-eight",
+            71: "seventy-one", 72: "seventy-two"
+        };
+
+        // --- 2. EXPERIMENT STATE ---
+        let trials = [];
+        let currentTrialIndex = 0;
+        let trialStartTime = 0;
+        let participantData = [];
+        const subjectID = 'Sub_' + Math.floor(Math.random() * 10000);
+
+        // --- 3. FUNCTIONS ---
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startExperiment() {
+            // Randomize order
+            trials = shuffle([...rawStimuli]);
+            document.getElementById('screen-welcome').classList.add('hidden');
+            showFixation();
+        }
+
+        function showFixation() {
+            document.getElementById('screen-fixation').classList.remove('hidden');
+            document.getElementById('screen-trial').classList.add('hidden');
+            
+            // 500ms fixation cross
+            setTimeout(() => {
+                document.getElementById('screen-fixation').classList.add('hidden');
+                showTrial();
+            }, 500);
+        }
+
+        function showTrial() {
+            if (currentTrialIndex >= trials.length) {
+                endExperiment();
+                return;
+            }
+
+            const trial = trials[currentTrialIndex];
+            const displayEl = document.getElementById('stimulus-display');
+            const inputEl = document.getElementById('answer-input');
+
+            // Format Logic
+            if (trial.format === 'digit') {
+                displayEl.innerText = `${trial.n1} + ${trial.n2}`;
+            } else {
+                // Word format conversion
+                const w1 = numToWords[trial.n1] || trial.n1; // Fallback if typo
+                const w2 = numToWords[trial.n2] || trial.n2;
+                displayEl.innerText = `${w1} + ${w2}`;
+            }
+
+            // Reset input
+            inputEl.value = '';
+            document.getElementById('screen-trial').classList.remove('hidden');
+            inputEl.focus();
+
+            // START TIMER
+            trialStartTime = performance.now();
+        }
+
+        function handleInput(e) {
+            if (e.key === 'Enter') {
+                const inputEl = document.getElementById('answer-input');
+                const userAnswer = parseInt(inputEl.value);
+
+                if (isNaN(userAnswer)) return; // Don't submit empty
+
+                const endTime = performance.now();
+                const rt = endTime - trialStartTime;
+                const trial = trials[currentTrialIndex];
+                const correctAnswer = trial.n1 + trial.n2;
+                const isCorrect = (userAnswer === correctAnswer) ? 1 : 0;
+
+                // Save Data
+                participantData.push({
+                    subject: subjectID,
+                    condition_code: trial.condition,
+                    format: trial.format,
+                    complexity: trial.carry,
+                    n1: trial.n1,
+                    n2: trial.n2,
+                    correct_answer: correctAnswer,
+                    user_answer: userAnswer,
+                    accuracy: isCorrect,
+                    rt_ms: Math.round(rt)
+                });
+
+                // Next Trial
+                currentTrialIndex++;
+                showFixation();
+            }
+        }
+
+        function endExperiment() {
+            document.getElementById('screen-trial').classList.add('hidden');
+            document.getElementById('screen-end').classList.remove('hidden');
+            downloadCSV();
+        }
+
+        function downloadCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "SubjectID,ConditionCode,Format,Complexity,N1,N2,CorrectAnswer,UserAnswer,Accuracy,RT_ms\n";
+
+            participantData.forEach(row => {
+                csvContent += `${row.subject},${row.condition_code},${row.format},${row.complexity},${row.n1},${row.n2},${row.correct_answer},${row.user_answer},${row.accuracy},${row.rt_ms}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `results_${subjectID}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- EVENT LISTENERS ---
+        document.getElementById('answer-input').addEventListener('keypress', handleInput);
+
+    </script>
+</body>
+</html>
