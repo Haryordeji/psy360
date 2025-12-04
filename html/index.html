@@ -18,12 +18,14 @@
 
         #container {
             background: white;
-            padding: 40px;
+            padding: 60px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             text-align: center;
-            width: 600px;
-            min-height: 300px;
+            /* Wider container to prevent text wrapping */
+            width: 900px;
+            max-width: 95%;
+            min-height: 400px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -32,31 +34,38 @@
 
         .hidden { display: none !important; }
 
-        h1 { margin-bottom: 20px; font-size: 24px; }
-        p { font-size: 18px; line-height: 1.6; color: #555; }
+        h1 { margin-bottom: 20px; font-size: 32px; }
+        p { font-size: 20px; line-height: 1.6; color: #555; }
 
         .stimulus {
-            font-size: 48px;
+            font-size: 56px;
             font-weight: bold;
-            margin-bottom: 30px;
-            font-family: monospace; /* Ensures numbers align well */
+            margin-bottom: 40px;
+            font-family: monospace;
+            white-space: nowrap; /* PREVENTS WRAPPING */
+            letter-spacing: -1px;
         }
 
         .fixation {
-            font-size: 60px;
+            font-size: 80px;
             color: #333;
         }
 
         input[type="number"] {
-            font-size: 24px;
-            padding: 10px;
-            width: 150px;
+            font-size: 32px;
+            padding: 15px;
+            width: 200px;
             text-align: center;
             margin-bottom: 20px;
             border: 2px solid #ddd;
             border-radius: 4px;
+            outline: none;
         }
-        
+
+        input:focus {
+            border-color: #007bff;
+        }
+
         /* Remove arrows from number input */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button {
@@ -65,8 +74,8 @@
         }
 
         button {
-            padding: 12px 24px;
-            font-size: 18px;
+            padding: 15px 30px;
+            font-size: 20px;
             background-color: #007bff;
             color: white;
             border: none;
@@ -82,6 +91,7 @@
 <body>
 
     <div id="container">
+        <!-- SCREEN 1: WELCOME -->
         <div id="screen-welcome">
             <h1>Arithmetic Experiment</h1>
             <p>You will be presented with a series of addition problems.</p>
@@ -91,15 +101,18 @@
             <button onclick="startExperiment()">Start Experiment</button>
         </div>
 
+        <!-- SCREEN 2: FIXATION -->
         <div id="screen-fixation" class="hidden">
             <div class="fixation">+</div>
         </div>
 
+        <!-- SCREEN 3: STIMULUS -->
         <div id="screen-trial" class="hidden">
             <div id="stimulus-display" class="stimulus"></div>
             <input type="number" id="answer-input" autocomplete="off">
         </div>
 
+        <!-- SCREEN 4: END -->
         <div id="screen-end" class="hidden">
             <h1>Experiment Complete</h1>
             <p>Thank you for your participation.</p>
@@ -111,69 +124,72 @@
     </div>
 
     <script>
-        // --- 1. BALANCED STIMULI DATABASE ---
-        // Mean sum for all groups is approx ~77. 
-        // No ties. Carry/No-Carry logic enforced.
-        
+        // --- 1. BALANCED STIMULI DATABASE (MATCHED-PAIR DESIGN) ---
+        // We use 10 specific target sums: [53, 56, 62, 67, 74, 76, 83, 85, 88, 94]
+        // This ensures the "Problem Size Effect" is perfectly controlled across conditions
+        // without repeating the exact same problem text.
+
         const rawStimuli = [
-            // --- CONDITION 1: DIGIT / NO-CARRY (10 items) ---
-            { n1: 23, n2: 54, format: 'digit', carry: 'no', condition: 1 }, // Sum 77
-            { n1: 41, n2: 36, format: 'digit', carry: 'no', condition: 1 }, // Sum 77
-            { n1: 62, n2: 15, format: 'digit', carry: 'no', condition: 1 }, // Sum 77
-            { n1: 34, n2: 43, format: 'digit', carry: 'no', condition: 1 }, // Sum 77
-            { n1: 51, n2: 27, format: 'digit', carry: 'no', condition: 1 }, // Sum 78
-            { n1: 16, n2: 62, format: 'digit', carry: 'no', condition: 1 }, // Sum 78
-            { n1: 72, n2: 14, format: 'digit', carry: 'no', condition: 1 }, // Sum 86
-            { n1: 25, n2: 44, format: 'digit', carry: 'no', condition: 1 }, // Sum 69
-            { n1: 37, n2: 21, format: 'digit', carry: 'no', condition: 1 }, // Sum 58
-            { n1: 53, n2: 35, format: 'digit', carry: 'no', condition: 1 }, // Sum 88
+            // --- CONDITION 1: DIGIT / NO-CARRY ---
+            { n1: 21, n2: 32, format: 'digit', carry: 'no', condition: 1 }, // Sum 53
+            { n1: 22, n2: 34, format: 'digit', carry: 'no', condition: 1 }, // Sum 56
+            { n1: 41, n2: 21, format: 'digit', carry: 'no', condition: 1 }, // Sum 62
+            { n1: 23, n2: 44, format: 'digit', carry: 'no', condition: 1 }, // Sum 67
+            { n1: 32, n2: 42, format: 'digit', carry: 'no', condition: 1 }, // Sum 74
+            { n1: 52, n2: 24, format: 'digit', carry: 'no', condition: 1 }, // Sum 76
+            { n1: 51, n2: 32, format: 'digit', carry: 'no', condition: 1 }, // Sum 83
+            { n1: 62, n2: 23, format: 'digit', carry: 'no', condition: 1 }, // Sum 85
+            { n1: 64, n2: 24, format: 'digit', carry: 'no', condition: 1 }, // Sum 88
+            { n1: 72, n2: 22, format: 'digit', carry: 'no', condition: 1 }, // Sum 94
 
-            // --- CONDITION 2: DIGIT / CARRY (10 items) ---
-            { n1: 48, n2: 29, format: 'digit', carry: 'yes', condition: 2 }, // Sum 77
-            { n1: 38, n2: 39, format: 'digit', carry: 'yes', condition: 2 }, // Sum 77
-            { n1: 59, n2: 18, format: 'digit', carry: 'yes', condition: 2 }, // Sum 77
-            { n1: 27, n2: 55, format: 'digit', carry: 'yes', condition: 2 }, // Sum 82
-            { n1: 19, n2: 58, format: 'digit', carry: 'yes', condition: 2 }, // Sum 77
-            { n1: 36, n2: 47, format: 'digit', carry: 'yes', condition: 2 }, // Sum 83
-            { n1: 45, n2: 37, format: 'digit', carry: 'yes', condition: 2 }, // Sum 82
-            { n1: 24, n2: 48, format: 'digit', carry: 'yes', condition: 2 }, // Sum 72
-            { n1: 17, n2: 34, format: 'digit', carry: 'yes', condition: 2 }, // Sum 51
-            { n1: 68, n2: 16, format: 'digit', carry: 'yes', condition: 2 }, // Sum 84
+            // --- CONDITION 2: DIGIT / CARRY ---
+            { n1: 26, n2: 27, format: 'digit', carry: 'yes', condition: 2 }, // Sum 53
+            { n1: 27, n2: 29, format: 'digit', carry: 'yes', condition: 2 }, // Sum 56
+            { n1: 27, n2: 35, format: 'digit', carry: 'yes', condition: 2 }, // Sum 62
+            { n1: 28, n2: 39, format: 'digit', carry: 'yes', condition: 2 }, // Sum 67
+            { n1: 36, n2: 38, format: 'digit', carry: 'yes', condition: 2 }, // Sum 74
+            { n1: 39, n2: 37, format: 'digit', carry: 'yes', condition: 2 }, // Sum 76
+            { n1: 45, n2: 38, format: 'digit', carry: 'yes', condition: 2 }, // Sum 83
+            { n1: 59, n2: 26, format: 'digit', carry: 'yes', condition: 2 }, // Sum 85
+            { n1: 49, n2: 39, format: 'digit', carry: 'yes', condition: 2 }, // Sum 88
+            { n1: 48, n2: 46, format: 'digit', carry: 'yes', condition: 2 }, // Sum 94
 
-            // --- CONDITION 3: WORD / NO-CARRY (10 items) ---
-            { n1: 32, n2: 45, format: 'word', carry: 'no', condition: 3 }, // Sum 77
-            { n1: 54, n2: 23, format: 'word', carry: 'no', condition: 3 }, // Sum 77
-            { n1: 13, n2: 64, format: 'word', carry: 'no', condition: 3 }, // Sum 77
-            { n1: 42, n2: 35, format: 'word', carry: 'no', condition: 3 }, // Sum 77
-            { n1: 21, n2: 57, format: 'word', carry: 'no', condition: 3 }, // Sum 78
-            { n1: 63, n2: 15, format: 'word', carry: 'no', condition: 3 }, // Sum 78
-            { n1: 31, n2: 55, format: 'word', carry: 'no', condition: 3 }, // Sum 86
-            { n1: 14, n2: 52, format: 'word', carry: 'no', condition: 3 }, // Sum 66
-            { n1: 26, n2: 32, format: 'word', carry: 'no', condition: 3 }, // Sum 58
-            { n1: 71, n2: 17, format: 'word', carry: 'no', condition: 3 }, // Sum 88
+            // --- CONDITION 3: WORD / NO-CARRY ---
+            // Target sums match Condition 1, but we use different addends to prevent memory recall
+            { n1: 41, n2: 12, format: 'word', carry: 'no', condition: 3 }, // Sum 53
+            { n1: 42, n2: 14, format: 'word', carry: 'no', condition: 3 }, // Sum 56
+            { n1: 51, n2: 11, format: 'word', carry: 'no', condition: 3 }, // Sum 62
+            { n1: 33, n2: 34, format: 'word', carry: 'no', condition: 3 }, // Sum 67
+            { n1: 52, n2: 22, format: 'word', carry: 'no', condition: 3 }, // Sum 74
+            { n1: 62, n2: 14, format: 'word', carry: 'no', condition: 3 }, // Sum 76
+            { n1: 61, n2: 22, format: 'word', carry: 'no', condition: 3 }, // Sum 83
+            { n1: 52, n2: 33, format: 'word', carry: 'no', condition: 3 }, // Sum 85
+            { n1: 54, n2: 34, format: 'word', carry: 'no', condition: 3 }, // Sum 88
+            { n1: 62, n2: 32, format: 'word', carry: 'no', condition: 3 }, // Sum 94
 
-            // --- CONDITION 4: WORD / CARRY (10 items) ---
-            { n1: 29, n2: 48, format: 'word', carry: 'yes', condition: 4 }, // Sum 77
-            { n1: 18, n2: 59, format: 'word', carry: 'yes', condition: 4 }, // Sum 77
-            { n1: 39, n2: 38, format: 'word', carry: 'yes', condition: 4 }, // Sum 77
-            { n1: 47, n2: 35, format: 'word', carry: 'yes', condition: 4 }, // Sum 82
-            { n1: 56, n2: 19, format: 'word', carry: 'yes', condition: 4 }, // Sum 75
-            { n1: 49, n2: 34, format: 'word', carry: 'yes', condition: 4 }, // Sum 83
-            { n1: 37, n2: 45, format: 'word', carry: 'yes', condition: 4 }, // Sum 82
-            { n1: 15, n2: 57, format: 'word', carry: 'yes', condition: 4 }, // Sum 72
-            { n1: 28, n2: 23, format: 'word', carry: 'yes', condition: 4 }, // Sum 51
-            { n1: 16, n2: 68, format: 'word', carry: 'yes', condition: 4 }, // Sum 84
+            // --- CONDITION 4: WORD / CARRY ---
+            // Target sums match Condition 2, but different addends
+            { n1: 25, n2: 28, format: 'word', carry: 'yes', condition: 4 }, // Sum 53
+            { n1: 38, n2: 18, format: 'word', carry: 'yes', condition: 4 }, // Sum 56
+            { n1: 28, n2: 34, format: 'word', carry: 'yes', condition: 4 }, // Sum 62
+            { n1: 29, n2: 38, format: 'word', carry: 'yes', condition: 4 }, // Sum 67
+            { n1: 47, n2: 27, format: 'word', carry: 'yes', condition: 4 }, // Sum 74
+            { n1: 48, n2: 28, format: 'word', carry: 'yes', condition: 4 }, // Sum 76
+            { n1: 46, n2: 37, format: 'word', carry: 'yes', condition: 4 }, // Sum 83
+            { n1: 48, n2: 37, format: 'word', carry: 'yes', condition: 4 }, // Sum 85
+            { n1: 59, n2: 29, format: 'word', carry: 'yes', condition: 4 }, // Sum 88
+            { n1: 57, n2: 37, format: 'word', carry: 'yes', condition: 4 }, // Sum 94
         ];
 
         // Helper: Number to Word converter
         const numToWords = {
-            13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen",
-            21: "twenty-one", 23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six", 27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine",
-            31: "thirty-one", 32: "thirty-two", 34: "thirty-four", 35: "thirty-five", 36: "thirty-six", 37: "thirty-seven", 38: "thirty-eight", 39: "thirty-nine",
-            41: "forty-one", 42: "forty-two", 43: "forty-three", 44: "forty-four", 45: "forty-five", 47: "forty-seven", 48: "forty-eight", 49: "forty-nine",
-            51: "fifty-one", 52: "fifty-two", 53: "fifty-three", 54: "fifty-four", 55: "fifty-five", 56: "fifty-six", 57: "fifty-seven", 58: "fifty-eight", 59: "fifty-nine",
-            62: "sixty-two", 63: "sixty-three", 64: "sixty-four", 68: "sixty-eight",
-            71: "seventy-one", 72: "seventy-two"
+            11: "eleven", 12: "twelve", 14: "fourteen", 18: "eighteen",
+            21: "twenty-one", 22: "twenty-two", 23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six", 27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine",
+            32: "thirty-two", 33: "thirty-three", 34: "thirty-four", 35: "thirty-five", 36: "thirty-six", 37: "thirty-seven", 38: "thirty-eight", 39: "thirty-nine",
+            41: "forty-one", 42: "forty-two", 44: "forty-four", 45: "forty-five", 46: "forty-six", 47: "forty-seven", 48: "forty-eight", 49: "forty-nine",
+            51: "fifty-one", 52: "fifty-two", 54: "fifty-four", 57: "fifty-seven", 59: "fifty-nine",
+            61: "sixty-one", 62: "sixty-two", 64: "sixty-four",
+            72: "seventy-two"
         };
 
         // --- 2. EXPERIMENT STATE ---
@@ -181,6 +197,7 @@
         let currentTrialIndex = 0;
         let trialStartTime = 0;
         let participantData = [];
+        let hasEdited = false;
         const subjectID = 'Sub_' + Math.floor(Math.random() * 10000);
 
         // --- 3. FUNCTIONS ---
@@ -233,11 +250,19 @@
 
             // Reset input
             inputEl.value = '';
+            hasEdited = false;
             document.getElementById('screen-trial').classList.remove('hidden');
             inputEl.focus();
 
             // START TIMER
             trialStartTime = performance.now();
+        }
+
+        function checkEdit(e) {
+            // If they press Backspace or Delete, mark trial as dirty
+            if (e.key === "Backspace" || e.key === "Delete") {
+                hasEdited = true;
+            }
         }
 
         function handleInput(e) {
@@ -264,7 +289,8 @@
                     correct_answer: correctAnswer,
                     user_answer: userAnswer,
                     accuracy: isCorrect,
-                    rt_ms: Math.round(rt)
+                    rt_ms: Math.round(rt),
+                    was_edited: hasEdited ? 1 : 0
                 });
 
                 // Next Trial
@@ -281,10 +307,10 @@
 
         function downloadCSV() {
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "SubjectID,ConditionCode,Format,Complexity,N1,N2,CorrectAnswer,UserAnswer,Accuracy,RT_ms\n";
+            csvContent += "SubjectID,ConditionCode,Format,Complexity,N1,N2,CorrectAnswer,UserAnswer,Accuracy,RT_ms,WasEdited\n";
 
             participantData.forEach(row => {
-                csvContent += `${row.subject},${row.condition_code},${row.format},${row.complexity},${row.n1},${row.n2},${row.correct_answer},${row.user_answer},${row.accuracy},${row.rt_ms}\n`;
+                csvContent += `${row.subject},${row.condition_code},${row.format},${row.complexity},${row.n1},${row.n2},${row.correct_answer},${row.user_answer},${row.accuracy},${row.rt_ms},${row.was_edited}\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
@@ -297,6 +323,7 @@
         }
 
         // --- EVENT LISTENERS ---
+        document.getElementById('answer-input').addEventListener('keydown', checkEdit);
         document.getElementById('answer-input').addEventListener('keypress', handleInput);
 
     </script>
